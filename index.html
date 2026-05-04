@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aurora Access</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <div class="brand">Aurora</div>
+        <h1>Beautiful access for modern teams.</h1>
+        <p>
+          Secure sign in and signup in one polished interface with smooth micro-interactions,
+          soft gradients, and a clean experience that feels premium.
+        </p>
+        <div class="hero-badges">
+          <span>Secure by design</span>
+          <span>Fast onboarding</span>
+          <span>Minimal UI</span>
+        </div>
+      </section>
+
+      <section class="card auth-card">
+        <div class="auth-tabs" role="tablist" aria-label="Authentication mode">
+          <button class="tab active" data-mode="login" type="button">Login</button>
+          <button class="tab" data-mode="signup" type="button">Sign up</button>
+        </div>
+
+        <form id="authForm" class="auth-form">
+          <div class="form-header">
+            <h2 id="formTitle">Welcome back</h2>
+            <p id="formSubtitle">Sign in to continue your journey.</p>
+          </div>
+
+          <label class="field">
+            <span>Email</span>
+            <input type="email" name="email" placeholder="you@example.com" required />
+          </label>
+
+          <label class="field">
+            <span>Password</span>
+            <input type="password" name="password" placeholder="Enter your password" required />
+          </label>
+
+          <label class="field signup-only">
+            <span>Confirm password</span>
+            <input type="password" name="confirmPassword" placeholder="Repeat your password" />
+          </label>
+
+          <div class="form-row signup-only">
+            <label class="checkbox">
+              <input type="checkbox" name="terms" />
+              <span>I agree to the terms and privacy policy</span>
+            </label>
+          </div>
+
+          <button class="primary" type="submit" id="submitButton">Login</button>
+          <p class="fineprint" id="fineprint">No account yet? Switch to sign up in seconds.</p>
+        </form>
+      </section>
+    </main>
+
+    <script>
+      const tabs = document.querySelectorAll('.tab');
+      const signupOnly = document.querySelectorAll('.signup-only');
+      const title = document.getElementById('formTitle');
+      const subtitle = document.getElementById('formSubtitle');
+      const submitButton = document.getElementById('submitButton');
+      const fineprint = document.getElementById('fineprint');
+      const form = document.getElementById('authForm');
+      let mode = 'login';
+
+      const setMode = (nextMode) => {
+        mode = nextMode;
+        tabs.forEach((tab) => tab.classList.toggle('active', tab.dataset.mode === mode));
+        const isSignup = mode === 'signup';
+        signupOnly.forEach((node) => node.classList.toggle('visible', isSignup));
+        title.textContent = isSignup ? 'Create your account' : 'Welcome back';
+        subtitle.textContent = isSignup
+          ? 'Join Aurora and get started with a beautiful onboarding flow.'
+          : 'Sign in to continue your journey.';
+        submitButton.textContent = isSignup ? 'Create account' : 'Login';
+        fineprint.textContent = isSignup
+          ? 'Already have an account? Switch back to login.'
+          : 'No account yet? Switch to sign up in seconds.';
+      };
+
+      tabs.forEach((tab) => tab.addEventListener('click', () => setMode(tab.dataset.mode)));
+
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const data = new FormData(form);
+        const email = data.get('email');
+        const message = mode === 'signup'
+          ? `Account created for ${email}.`
+          : `Welcome back, ${email}.`;
+        submitButton.textContent = 'Done';
+        setTimeout(() => {
+          submitButton.textContent = mode === 'signup' ? 'Create account' : 'Login';
+          alert(message);
+        }, 150);
+      });
+
+      setMode('login');
+    </script>
+  </body>
+</html>
