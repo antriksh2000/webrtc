@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vertex Auth | MERN + shadcn</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="marketing-panel">
+        <div class="eyebrow">MERN Stack • shadcn-inspired UI</div>
+        <h1>Clean authentication for modern product teams.</h1>
+        <p>
+          A polished login and signup experience designed for a MERN application, pairing a
+          React-style card layout with shadcn-inspired surfaces, soft borders, and subtle motion.
+        </p>
+
+        <div class="feature-grid" aria-label="Highlights">
+          <article class="feature-card">
+            <h2>React-ready</h2>
+            <p>Structured like a component-driven auth screen for easy migration into React.</p>
+          </article>
+          <article class="feature-card">
+            <h2>Express + Node</h2>
+            <p>Frontend can connect to REST auth endpoints for login and signup flows.</p>
+          </article>
+          <article class="feature-card">
+            <h2>MongoDB</h2>
+            <p>Prepared for user records, hashed passwords, and session or token storage.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="auth-shell">
+        <div class="auth-card">
+          <div class="card-topline">
+            <div>
+              <p class="eyebrow small">Vertex Auth</p>
+              <h2 id="formTitle">Welcome back</h2>
+              <p id="formSubtitle">Sign in to continue to your dashboard.</p>
+            </div>
+            <div class="pill">Secure access</div>
+          </div>
+
+          <div class="auth-tabs" role="tablist" aria-label="Authentication mode">
+            <button class="tab active" data-mode="login" type="button">Login</button>
+            <button class="tab" data-mode="signup" type="button">Sign up</button>
+          </div>
+
+          <form id="authForm" class="auth-form">
+            <label class="field">
+              <span>Email address</span>
+              <input type="email" name="email" placeholder="you@example.com" required />
+            </label>
+
+            <label class="field">
+              <span>Password</span>
+              <input type="password" name="password" placeholder="Enter your password" required />
+            </label>
+
+            <label class="field signup-only">
+              <span>Full name</span>
+              <input type="text" name="name" placeholder="Jane Doe" />
+            </label>
+
+            <label class="field signup-only">
+              <span>Confirm password</span>
+              <input type="password" name="confirmPassword" placeholder="Repeat your password" />
+            </label>
+
+            <label class="checkbox signup-only">
+              <input type="checkbox" name="terms" />
+              <span>I agree to the terms and privacy policy</span>
+            </label>
+
+            <button class="primary" type="submit" id="submitButton">Login</button>
+            <p class="fineprint" id="fineprint">No account yet? Switch to sign up in seconds.</p>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const tabs = document.querySelectorAll('.tab');
+      const signupOnly = document.querySelectorAll('.signup-only');
+      const title = document.getElementById('formTitle');
+      const subtitle = document.getElementById('formSubtitle');
+      const submitButton = document.getElementById('submitButton');
+      const fineprint = document.getElementById('fineprint');
+      const form = document.getElementById('authForm');
+      let mode = 'login';
+
+      const setMode = (nextMode) => {
+        mode = nextMode;
+        tabs.forEach((tab) => tab.classList.toggle('active', tab.dataset.mode === mode));
+        const isSignup = mode === 'signup';
+        signupOnly.forEach((node) => node.classList.toggle('visible', isSignup));
+        title.textContent = isSignup ? 'Create your account' : 'Welcome back';
+        subtitle.textContent = isSignup
+          ? 'Join the app and create your account in a beautifully simple flow.'
+          : 'Sign in to continue to your dashboard.';
+        submitButton.textContent = isSignup ? 'Create account' : 'Login';
+        fineprint.textContent = isSignup
+          ? 'Already have an account? Switch back to login.'
+          : 'No account yet? Switch to sign up in seconds.';
+      };
+
+      tabs.forEach((tab) => tab.addEventListener('click', () => setMode(tab.dataset.mode)));
+
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const data = new FormData(form);
+        const email = data.get('email');
+        const message = mode === 'signup'
+          ? `Signup payload ready for ${email}. Connect this form to your Express API.`
+          : `Login payload ready for ${email}. Connect this form to your auth endpoint.`;
+        submitButton.textContent = 'Saved locally';
+        window.setTimeout(() => {
+          submitButton.textContent = mode === 'signup' ? 'Create account' : 'Login';
+          window.alert(message);
+        }, 160);
+      });
+
+      setMode('login');
+    </script>
+  </body>
+</html>
