@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Aurora Access</title>
+    <title>Vertex Auth | MERN + shadcn</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -13,58 +13,77 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <main class="shell">
-      <section class="hero">
-        <div class="brand">Aurora</div>
-        <h1>Beautiful access for modern teams.</h1>
+    <main class="app-shell">
+      <section class="marketing-panel">
+        <div class="eyebrow">MERN Stack • shadcn-inspired UI</div>
+        <h1>Clean authentication for modern product teams.</h1>
         <p>
-          Secure sign in and signup in one polished interface with smooth micro-interactions,
-          soft gradients, and a clean experience that feels premium.
+          A polished login and signup experience designed for a MERN application, pairing a
+          React-style card layout with shadcn-inspired surfaces, soft borders, and subtle motion.
         </p>
-        <div class="hero-badges">
-          <span>Secure by design</span>
-          <span>Fast onboarding</span>
-          <span>Minimal UI</span>
+
+        <div class="feature-grid" aria-label="Highlights">
+          <article class="feature-card">
+            <h2>React-ready</h2>
+            <p>Structured like a component-driven auth screen for easy migration into React.</p>
+          </article>
+          <article class="feature-card">
+            <h2>Express + Node</h2>
+            <p>Frontend can connect to REST auth endpoints for login and signup flows.</p>
+          </article>
+          <article class="feature-card">
+            <h2>MongoDB</h2>
+            <p>Prepared for user records, hashed passwords, and session or token storage.</p>
+          </article>
         </div>
       </section>
 
-      <section class="card auth-card">
-        <div class="auth-tabs" role="tablist" aria-label="Authentication mode">
-          <button class="tab active" data-mode="login" type="button">Login</button>
-          <button class="tab" data-mode="signup" type="button">Sign up</button>
-        </div>
-
-        <form id="authForm" class="auth-form">
-          <div class="form-header">
-            <h2 id="formTitle">Welcome back</h2>
-            <p id="formSubtitle">Sign in to continue your journey.</p>
+      <section class="auth-shell">
+        <div class="auth-card">
+          <div class="card-topline">
+            <div>
+              <p class="eyebrow small">Vertex Auth</p>
+              <h2 id="formTitle">Welcome back</h2>
+              <p id="formSubtitle">Sign in to continue to your dashboard.</p>
+            </div>
+            <div class="pill">Secure access</div>
           </div>
 
-          <label class="field">
-            <span>Email</span>
-            <input type="email" name="email" placeholder="you@example.com" required />
-          </label>
+          <div class="auth-tabs" role="tablist" aria-label="Authentication mode">
+            <button class="tab active" data-mode="login" type="button">Login</button>
+            <button class="tab" data-mode="signup" type="button">Sign up</button>
+          </div>
 
-          <label class="field">
-            <span>Password</span>
-            <input type="password" name="password" placeholder="Enter your password" required />
-          </label>
+          <form id="authForm" class="auth-form">
+            <label class="field">
+              <span>Email address</span>
+              <input type="email" name="email" placeholder="you@example.com" required />
+            </label>
 
-          <label class="field signup-only">
-            <span>Confirm password</span>
-            <input type="password" name="confirmPassword" placeholder="Repeat your password" />
-          </label>
+            <label class="field">
+              <span>Password</span>
+              <input type="password" name="password" placeholder="Enter your password" required />
+            </label>
 
-          <div class="form-row signup-only">
-            <label class="checkbox">
+            <label class="field signup-only">
+              <span>Full name</span>
+              <input type="text" name="name" placeholder="Jane Doe" />
+            </label>
+
+            <label class="field signup-only">
+              <span>Confirm password</span>
+              <input type="password" name="confirmPassword" placeholder="Repeat your password" />
+            </label>
+
+            <label class="checkbox signup-only">
               <input type="checkbox" name="terms" />
               <span>I agree to the terms and privacy policy</span>
             </label>
-          </div>
 
-          <button class="primary" type="submit" id="submitButton">Login</button>
-          <p class="fineprint" id="fineprint">No account yet? Switch to sign up in seconds.</p>
-        </form>
+            <button class="primary" type="submit" id="submitButton">Login</button>
+            <p class="fineprint" id="fineprint">No account yet? Switch to sign up in seconds.</p>
+          </form>
+        </div>
       </section>
     </main>
 
@@ -85,8 +104,8 @@
         signupOnly.forEach((node) => node.classList.toggle('visible', isSignup));
         title.textContent = isSignup ? 'Create your account' : 'Welcome back';
         subtitle.textContent = isSignup
-          ? 'Join Aurora and get started with a beautiful onboarding flow.'
-          : 'Sign in to continue your journey.';
+          ? 'Join the app and create your account in a beautifully simple flow.'
+          : 'Sign in to continue to your dashboard.';
         submitButton.textContent = isSignup ? 'Create account' : 'Login';
         fineprint.textContent = isSignup
           ? 'Already have an account? Switch back to login.'
@@ -100,13 +119,13 @@
         const data = new FormData(form);
         const email = data.get('email');
         const message = mode === 'signup'
-          ? `Account created for ${email}.`
-          : `Welcome back, ${email}.`;
-        submitButton.textContent = 'Done';
-        setTimeout(() => {
+          ? `Signup payload ready for ${email}. Connect this form to your Express API.`
+          : `Login payload ready for ${email}. Connect this form to your auth endpoint.`;
+        submitButton.textContent = 'Saved locally';
+        window.setTimeout(() => {
           submitButton.textContent = mode === 'signup' ? 'Create account' : 'Login';
-          alert(message);
-        }, 150);
+          window.alert(message);
+        }, 160);
       });
 
       setMode('login');
