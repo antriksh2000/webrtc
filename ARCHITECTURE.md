@@ -3,16 +3,18 @@
 ## Frontend
 - Vite + React single-page application.
 - A shadcn-style login experience built from reusable card, button, input, and label primitives.
-- Responsive split layout with demo credentials, social buttons, and success/error feedback.
+- Responsive split layout with backend health status, demo credentials, social buttons, and success/error feedback.
 - Submits credentials to the backend through `/api/login`.
 - Vite dev server proxies `/api` requests to the Node backend in development.
 
 ## Backend
 - Node.js + Express API server.
+- Route handlers are organized under `server/routes/`.
 - Authentication logic is isolated in `server/services/auth-service.js`.
 - Demo user data is isolated in `server/data/users.js`.
 - Provides `/api/health` for service checks.
 - Provides `/api/login` for credential validation.
+- Provides `/api/logout` for a simple logout response.
 - Returns a demo user response for the seeded credentials:
   - `demo@example.com`
   - `password123`

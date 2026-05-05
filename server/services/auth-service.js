@@ -1,7 +1,7 @@
 import { users } from '../data/users.js';
 
 export function authenticateUser(email, password) {
-  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedEmail = normalizeEmail(email);
   const user = users.find((entry) => entry.email === normalizedEmail);
 
   if (!user || user.password !== password) {
@@ -16,3 +16,6 @@ export function authenticateUser(email, password) {
   };
 }
 
+function normalizeEmail(email) {
+  return email.trim().toLowerCase();
+}
