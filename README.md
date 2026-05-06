@@ -1,6 +1,6 @@
-# MERN Login + Dashboard
+# MERN Auth + Dashboard
 
-A minimal MERN starter with a shadcn-inspired login flow, dashboard workspace, camera preview, and a Mongo-backed Express auth endpoint on the server.
+A minimal MERN starter with shadcn-inspired sign-in and sign-up flows, a dashboard workspace, camera preview controls, and Mongo-backed Express auth and user endpoints on the server.
 
 ## Stack
 
@@ -27,14 +27,14 @@ A minimal MERN starter with a shadcn-inspired login flow, dashboard workspace, c
    npm run dev:client
    ```
 
-The client runs on `http://localhost:5173` and posts login requests to `http://localhost:5000/api/auth/login` by default.
+The client runs on `http://localhost:5173` and posts auth requests to `http://localhost:5000/api/auth` by default.
 
 ## Dashboard experience
 
-After login, the app redirects into a dashboard screen that includes:
+After authentication, the app redirects into a dashboard screen that includes:
 
-- A shadcn-style sidebar with active and inactive user filters
-- A live camera preview panel on the right
+- A shadcn-style sidebar that only shows registered database users
+- A live camera preview panel on the right with a camera on/off toggle
 - A confirmation popup before starting a video call
 - An in-app conference state that highlights the selected participant and active call timer
 
