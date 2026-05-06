@@ -4,6 +4,7 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 
 const authRouter = require("./routes/auth");
+const usersRouter = require("./routes/users");
 
 dotenv.config();
 
@@ -43,6 +44,7 @@ function createServer() {
   });
 
   app.use("/api/auth", authRouter);
+  app.use("/api/users", usersRouter);
 
   app.use((error, _req, res, _next) => {
     console.error(error);
@@ -79,4 +81,3 @@ module.exports = {
   createServer,
   startServer,
 };
-

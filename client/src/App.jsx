@@ -7,9 +7,9 @@ import {
   LogOut,
   Phone,
   ShieldCheck,
+  Users,
   Video,
   VideoOff,
-  Users,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -22,18 +22,10 @@ const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
 const SESSION_STORAGE_KEY = "mern-shadcn-session";
 
 const initialFormState = {
+  name: "",
   email: "",
   password: "",
 };
-
-const directory = [
-  { id: 1, name: "Aarav Sharma", email: "aarav@example.com", title: "Frontend Engineer", status: "active" },
-  { id: 2, name: "Maya Chen", email: "maya@example.com", title: "Product Designer", status: "inactive" },
-  { id: 3, name: "Olivia Wilson", email: "olivia@example.com", title: "Project Manager", status: "active" },
-  { id: 4, name: "Noah Martinez", email: "noah@example.com", title: "QA Engineer", status: "inactive" },
-  { id: 5, name: "Ibrahim Khan", email: "ibrahim@example.com", title: "DevOps Engineer", status: "active" },
-  { id: 6, name: "Sophia Lee", email: "sophia@example.com", title: "Customer Success", status: "active" },
-];
 
 function getStoredSession() {
   if (typeof window === "undefined") {
@@ -65,12 +57,15 @@ function formatDuration(totalSeconds) {
 }
 
 export default function App() {
+  const [authMode, setAuthMode] = useState("login");
   const [formData, setFormData] = useState(initialFormState);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [session, setSession] = useState(getStoredSession);
-  const [presenceFilter, setPresenceFilter] = useState("all");
+  const [users, setUsers] = useState([]);
+  const [usersState, setUsersState] = useState({ status: "idle", error: "" });
   const [cameraState, setCameraState] = useState({ status: "idle", error: "" });
+  const [cameraEnabled, setCameraEnabled] = useState(true);
   const [pendingUser, setPendingUser] = useState(null);
   const [activeCall, setActiveCall] = useState(null);
   const [callDuration, setCallDuration] = useState(0);
@@ -81,25 +76,62 @@ export default function App() {
     () =>
       session
         ? `Welcome back, ${session.user.name}. Your dashboard is ready.`
-        : "Use your Mongo-backed account credentials to sign in.",
-    [session],
+        : authMode === "signup"
+          ? "Create a Mongo-backed account to enter the dashboard."
+          : "Use your Mongo-backed account credentials to sign in.",
+    [authMode, session],
   );
+  const cameraStatusLabel = cameraState.status === "ready" ? (cameraEnabled ? "live" : "off") : cameraState.status;
+  const totalUsersInDatabase = session ? users.length + 1 : users.length;
 
-  const filteredUsers = useMemo(() => {
-    const visibleUsers = directory.filter((user) => user.email !== session?.user?.email);
-
-    if (presenceFilter === "all") {
-      return visibleUsers;
+  const stopCameraStream = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
     }
 
-    return visibleUsers.filter((user) => user.status === presenceFilter);
-  }, [presenceFilter, session]);
+    if (previewRef.current) {
+      previewRef.current.srcObject = null;
+    }
+  };
 
-  const activeUsers = useMemo(
-    () => directory.filter((user) => user.status === "active").length,
-    [],
-  );
-  const inactiveUsers = directory.length - activeUsers;
+  const requestCameraPreview = async (isCameraEnabled = cameraEnabled) => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraState({
+        status: "error",
+        error: "Camera preview is unavailable in this browser.",
+      });
+      return;
+    }
+
+    setCameraState({ status: "loading", error: "" });
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
+      });
+
+      stopCameraStream();
+
+      stream.getVideoTracks().forEach((track) => {
+        track.enabled = isCameraEnabled;
+      });
+
+      streamRef.current = stream;
+
+      if (previewRef.current) {
+        previewRef.current.srcObject = stream;
+      }
+
+      setCameraState({ status: "ready", error: "" });
+    } catch (cameraError) {
+      setCameraState({
+        status: "error",
+        error: cameraError.message || "Allow camera permissions to preview your video feed.",
+      });
+    }
+  };
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -116,11 +148,12 @@ export default function App() {
 
   useEffect(() => {
     if (!session) {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-      }
-
+      setUsers([]);
+      setUsersState({ status: "idle", error: "" });
+      setPendingUser(null);
+      setActiveCall(null);
+      setCameraEnabled(true);
+      stopCameraStream();
       setCameraState({ status: "idle", error: "" });
       return undefined;
     }
@@ -128,55 +161,18 @@ export default function App() {
     let isActive = true;
 
     async function startCamera() {
-      if (!navigator.mediaDevices?.getUserMedia) {
-        setCameraState({
-          status: "error",
-          error: "Camera preview is unavailable in this browser.",
-        });
+      if (!isActive) {
         return;
       }
 
-      setCameraState({ status: "loading", error: "" });
-
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: true,
-        });
-
-        if (!isActive) {
-          stream.getTracks().forEach((track) => track.stop());
-          return;
-        }
-
-        streamRef.current = stream;
-
-        if (previewRef.current) {
-          previewRef.current.srcObject = stream;
-        }
-
-        setCameraState({ status: "ready", error: "" });
-      } catch (cameraError) {
-        if (!isActive) {
-          return;
-        }
-
-        setCameraState({
-          status: "error",
-          error: cameraError.message || "Allow camera permissions to preview your video feed.",
-        });
-      }
+      await requestCameraPreview(cameraEnabled);
     }
 
     startCamera();
 
     return () => {
       isActive = false;
-
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-      }
+      stopCameraStream();
     };
   }, [session]);
 
@@ -185,6 +181,69 @@ export default function App() {
       previewRef.current.srcObject = streamRef.current;
     }
   }, [cameraState.status]);
+
+  useEffect(() => {
+    if (!streamRef.current) {
+      return;
+    }
+
+    streamRef.current.getVideoTracks().forEach((track) => {
+      track.enabled = cameraEnabled;
+    });
+  }, [cameraEnabled]);
+
+  useEffect(() => {
+    if (!session?.token) {
+      return;
+    }
+
+    let isActive = true;
+
+    async function loadUsers() {
+      setUsersState({ status: "loading", error: "" });
+
+      try {
+        const response = await fetch(`${API_URL}/api/users`, {
+          headers: {
+            Authorization: `Bearer ${session.token}`,
+          },
+        });
+
+        const payload = await response.json();
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            setSession(null);
+          }
+
+          throw new Error(payload.message || "Unable to load users.");
+        }
+
+        if (!isActive) {
+          return;
+        }
+
+        setUsers(payload.users);
+        setUsersState({ status: "ready", error: "" });
+      } catch (usersError) {
+        if (!isActive) {
+          return;
+        }
+
+        setUsers([]);
+        setUsersState({
+          status: "error",
+          error: usersError.message || "Unable to load users.",
+        });
+      }
+    }
+
+    loadUsers();
+
+    return () => {
+      isActive = false;
+    };
+  }, [session]);
 
   useEffect(() => {
     if (!activeCall) {
@@ -213,21 +272,32 @@ export default function App() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/login`, {
+      const endpoint = authMode === "signup" ? "signup" : "login";
+      const response = await fetch(`${API_URL}/api/auth/${endpoint}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(
+          authMode === "signup"
+            ? formData
+            : {
+                email: formData.email,
+                password: formData.password,
+              },
+        ),
       });
 
       const payload = await response.json();
 
       if (!response.ok) {
-        throw new Error(payload.message || "Unable to sign in.");
+        throw new Error(
+          payload.message || (authMode === "signup" ? "Unable to create account." : "Unable to sign in."),
+        );
       }
 
       setSession(payload);
+      setAuthMode("login");
       setFormData(initialFormState);
     } catch (submitError) {
       setError(submitError.message);
@@ -237,9 +307,29 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    setPendingUser(null);
-    setActiveCall(null);
     setSession(null);
+  };
+
+  const handleAuthModeChange = (mode) => {
+    setAuthMode(mode);
+    setError("");
+    setFormData(initialFormState);
+  };
+
+  const handleCameraToggle = async () => {
+    const nextEnabled = !cameraEnabled;
+    setCameraEnabled(nextEnabled);
+
+    if (streamRef.current) {
+      streamRef.current.getVideoTracks().forEach((track) => {
+        track.enabled = nextEnabled;
+      });
+      return;
+    }
+
+    if (nextEnabled && session) {
+      await requestCameraPreview(nextEnabled);
+    }
   };
 
   const startCall = () => {
@@ -271,13 +361,15 @@ export default function App() {
                     Welcome, {session.user.name}
                   </h1>
                   <p className="text-sm text-slate-300">
-                    Manage your team presence and launch video calls from one shadcn-style workspace.
+                    Manage registered teammates and launch video calls from one shadcn-style workspace.
                   </p>
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-3">
-                <Badge variant="secondary">{activeUsers} active now</Badge>
-                <Badge variant="outline">{inactiveUsers} away</Badge>
+                <Badge variant="secondary">{users.length} in sidebar</Badge>
+                <Badge variant="outline" className="capitalize">
+                  Camera {cameraStatusLabel}
+                </Badge>
                 <Button variant="outline" className="gap-2" onClick={handleLogout}>
                   <LogOut className="h-4 w-4" />
                   Log out
@@ -292,29 +384,36 @@ export default function App() {
                     <div>
                       <CardTitle className="flex items-center gap-2 text-xl">
                         <Users className="h-5 w-5 text-primary" />
-                        Team members
+                        Registered users
                       </CardTitle>
                       <CardDescription>
-                        Filter active or inactive users and start a video call with one click.
+                        The sidebar only shows users loaded from your database.
                       </CardDescription>
                     </div>
-                    <Badge variant="secondary">{filteredUsers.length} shown</Badge>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    {["all", "active", "inactive"].map((filter) => (
-                      <Button
-                        key={filter}
-                        variant={presenceFilter === filter ? "default" : "outline"}
-                        className="capitalize"
-                        onClick={() => setPresenceFilter(filter)}
-                      >
-                        {filter}
-                      </Button>
-                    ))}
+                    <Badge variant="secondary">{users.length} shown</Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {filteredUsers.map((user) => (
+                  {usersState.status === "loading" ? (
+                    <div className="flex min-h-40 flex-col items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-8 text-center">
+                      <LoaderCircle className="h-6 w-6 animate-spin text-primary" />
+                      <p className="text-sm text-slate-300">Loading registered users...</p>
+                    </div>
+                  ) : null}
+
+                  {usersState.status === "error" ? (
+                    <div className="rounded-2xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-red-200">
+                      {usersState.error}
+                    </div>
+                  ) : null}
+
+                  {usersState.status !== "loading" && users.length === 0 ? (
+                    <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-6 text-center text-sm text-slate-400">
+                      No other registered users are available in the database yet.
+                    </div>
+                  ) : null}
+
+                  {users.map((user) => (
                     <button
                       key={user.id}
                       type="button"
@@ -325,13 +424,8 @@ export default function App() {
                         {getInitials(user.name)}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="truncate font-medium text-white">{user.name}</p>
-                          <Badge variant={user.status === "active" ? "success" : "outline"}>
-                            {user.status}
-                          </Badge>
-                        </div>
-                        <p className="truncate text-sm text-slate-400">{user.title}</p>
+                        <p className="truncate font-medium text-white">{user.name}</p>
+                        <p className="truncate text-sm text-slate-400">{user.email}</p>
                       </div>
                       <Phone className="h-4 w-4 shrink-0 text-slate-400" />
                     </button>
@@ -349,8 +443,8 @@ export default function App() {
                   </Card>
                   <Card className="border-white/10 bg-slate-950/70">
                     <CardHeader className="space-y-1">
-                      <CardDescription>Camera</CardDescription>
-                      <CardTitle className="text-xl capitalize">{cameraState.status}</CardTitle>
+                      <CardDescription>Users in database</CardDescription>
+                      <CardTitle className="text-xl">{totalUsersInDatabase}</CardTitle>
                     </CardHeader>
                   </Card>
                   <Card className="border-white/10 bg-slate-950/70">
@@ -371,20 +465,26 @@ export default function App() {
                         Camera preview
                       </CardTitle>
                       <CardDescription>
-                        Your live preview stays on the right while conference controls stay within reach.
+                        Keep your live preview visible and turn your camera off any time during a call.
                       </CardDescription>
                     </div>
-                    {activeCall ? (
-                      <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
+                      {activeCall ? (
                         <Badge variant="success">In call with {activeCall.participant.name}</Badge>
+                      ) : (
+                        <Badge variant="outline">Ready to start a video call</Badge>
+                      )}
+                      <Button variant="outline" className="gap-2" onClick={handleCameraToggle}>
+                        {cameraEnabled ? <VideoOff className="h-4 w-4" /> : <Video className="h-4 w-4" />}
+                        {cameraEnabled ? "Turn camera off" : "Turn camera on"}
+                      </Button>
+                      {activeCall ? (
                         <Button variant="outline" className="gap-2" onClick={() => setActiveCall(null)}>
                           <VideoOff className="h-4 w-4" />
                           End call
                         </Button>
-                      </div>
-                    ) : (
-                      <Badge variant="outline">Ready to start a video call</Badge>
-                    )}
+                      ) : null}
+                    </div>
                   </CardHeader>
                   <CardContent className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
                     <div className="relative min-h-[420px] overflow-hidden rounded-3xl border border-white/10 bg-slate-900">
@@ -416,6 +516,18 @@ export default function App() {
                         </div>
                       )}
 
+                      {cameraState.status === "ready" && !cameraEnabled ? (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-950/75 px-6 text-center">
+                          <VideoOff className="h-8 w-8 text-primary" />
+                          <div className="space-y-1">
+                            <p className="font-medium text-white">Camera is turned off</p>
+                            <p className="text-sm text-slate-300">
+                              Turn your camera back on whenever you want to rejoin visually.
+                            </p>
+                          </div>
+                        </div>
+                      ) : null}
+
                       <div className="absolute inset-x-0 top-0 flex items-center justify-between bg-gradient-to-b from-slate-950/80 to-transparent p-4">
                         <div>
                           <p className="text-sm font-medium text-white">
@@ -425,8 +537,12 @@ export default function App() {
                             {activeCall ? "Video conference started" : "Personal preview window"}
                           </p>
                         </div>
-                        <Badge variant={cameraState.status === "ready" ? "success" : "outline"}>
-                          {cameraState.status === "ready" ? "Live camera" : "Waiting"}
+                        <Badge variant={cameraState.status === "ready" && cameraEnabled ? "success" : "outline"}>
+                          {cameraState.status === "ready"
+                            ? cameraEnabled
+                              ? "Live camera"
+                              : "Camera off"
+                            : "Waiting"}
                         </Badge>
                       </div>
                     </div>
@@ -442,35 +558,35 @@ export default function App() {
                               </div>
                               <div>
                                 <p className="font-medium text-white">{activeCall.participant.name}</p>
-                                <p className="text-sm text-slate-400">{activeCall.participant.title}</p>
+                                <p className="text-sm text-slate-400">{activeCall.participant.email}</p>
                               </div>
                             </div>
                             <p className="text-sm text-slate-300">
-                              Conference connected with audio and camera preview active.
+                              Conference connected with audio and your camera preview {cameraEnabled ? "active" : "turned off"}.
                             </p>
                           </div>
                         ) : (
                           <p className="mt-4 text-sm text-slate-400">
-                            Pick a teammate from the sidebar to open the confirmation popup and start a call.
+                            Pick a registered user from the sidebar to open the confirmation popup and start a call.
                           </p>
                         )}
                       </div>
 
                       <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
-                        <p className="text-sm font-medium text-slate-300">Availability summary</p>
+                        <p className="text-sm font-medium text-slate-300">Workspace summary</p>
                         <div className="mt-4 space-y-3 text-sm text-slate-300">
                           <div className="flex items-center justify-between">
-                            <span>Active users</span>
-                            <Badge variant="success">{activeUsers}</Badge>
+                            <span>Total users in DB</span>
+                            <Badge variant="secondary">{totalUsersInDatabase}</Badge>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span>Inactive users</span>
-                            <Badge variant="outline">{inactiveUsers}</Badge>
+                            <span>Users in sidebar</span>
+                            <Badge variant="outline">{users.length}</Badge>
                           </div>
                           <div className="flex items-center justify-between">
                             <span>Camera state</span>
                             <Badge variant="secondary" className="capitalize">
-                              {cameraState.status}
+                              {cameraStatusLabel}
                             </Badge>
                           </div>
                         </div>
@@ -510,11 +626,9 @@ export default function App() {
               <CardContent className="space-y-5">
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                   <p className="font-medium text-white">{pendingUser.name}</p>
-                  <p className="mt-1 text-sm text-slate-400">{pendingUser.title}</p>
+                  <p className="mt-1 text-sm text-slate-400">{pendingUser.email}</p>
                   <div className="mt-3">
-                    <Badge variant={pendingUser.status === "active" ? "success" : "outline"}>
-                      {pendingUser.status}
-                    </Badge>
+                    <Badge variant="secondary">Registered account</Badge>
                   </div>
                 </div>
                 <div className="flex justify-end gap-3">
@@ -545,11 +659,11 @@ export default function App() {
           </div>
           <div className="max-w-2xl space-y-5">
             <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-              Shadcn-inspired login screen for a modern MERN app.
+              Sign in or create an account for your real-time workspace.
             </h1>
             <p className="text-lg text-slate-300">
-              This starter pairs a React frontend with an Express and MongoDB auth API so you can
-              move from UI to authentication without rebuilding the basics.
+              This starter pairs a React frontend with an Express and MongoDB auth API so new users
+              can register, sign in, and join the dashboard without rebuilding the basics.
             </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -560,9 +674,9 @@ export default function App() {
               </p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur">
-              <p className="text-sm font-medium text-slate-200">Backend ready</p>
+              <p className="text-sm font-medium text-slate-200">Registration ready</p>
               <p className="mt-2 text-sm text-slate-400">
-                Login requests post directly to an Express endpoint backed by MongoDB and JWT.
+                Sign-up and sign-in requests post directly to Express endpoints backed by MongoDB and JWT.
               </p>
             </div>
           </div>
@@ -573,11 +687,44 @@ export default function App() {
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
               <LockKeyhole className="h-6 w-6" />
             </div>
-            <CardTitle>Sign in</CardTitle>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <CardTitle>{authMode === "signup" ? "Create account" : "Sign in"}</CardTitle>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant={authMode === "login" ? "default" : "outline"}
+                  onClick={() => handleAuthModeChange("login")}
+                >
+                  Sign in
+                </Button>
+                <Button
+                  type="button"
+                  variant={authMode === "signup" ? "default" : "outline"}
+                  onClick={() => handleAuthModeChange("signup")}
+                >
+                  Sign up
+                </Button>
+              </div>
+            </div>
             <CardDescription>{helperText}</CardDescription>
           </CardHeader>
           <CardContent>
             <form className="space-y-5" onSubmit={handleSubmit}>
+              {authMode === "signup" ? (
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full name</Label>
+                  <Input
+                    id="name"
+                    name="name"
+                    autoComplete="name"
+                    placeholder="Alex Johnson"
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+              ) : null}
+
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -585,12 +732,13 @@ export default function App() {
                   name="email"
                   type="email"
                   autoComplete="email"
-                  placeholder="demo@example.com"
+                  placeholder="you@example.com"
                   value={formData.email}
                   onChange={handleChange}
                   required
                 />
               </div>
+
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Password</Label>
@@ -600,7 +748,7 @@ export default function App() {
                   id="password"
                   name="password"
                   type="password"
-                  autoComplete="current-password"
+                  autoComplete={authMode === "signup" ? "new-password" : "current-password"}
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={handleChange}
@@ -616,7 +764,13 @@ export default function App() {
               ) : null}
 
               <Button className="w-full gap-2" size="lg" type="submit" disabled={isLoading}>
-                {isLoading ? "Signing in..." : "Continue to dashboard"}
+                {isLoading
+                  ? authMode === "signup"
+                    ? "Creating account..."
+                    : "Signing in..."
+                  : authMode === "signup"
+                    ? "Create account"
+                    : "Continue to dashboard"}
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </form>
