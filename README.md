@@ -1,10 +1,10 @@
-# MERN Login Screen
+# MERN Login + Dashboard
 
-A minimal MERN starter with a shadcn-inspired login screen on the client and a Mongo-backed Express auth endpoint on the server.
+A minimal MERN starter with a shadcn-inspired login flow, dashboard workspace, camera preview, and a Mongo-backed Express auth endpoint on the server.
 
 ## Stack
 
-- **Client:** React, Vite, Tailwind CSS, shadcn-style UI components
+- **Client:** React, Vite, Tailwind CSS, shadcn-style UI components, camera preview dashboard
 - **Server:** Node.js, Express, MongoDB, Mongoose, JWT
 
 ## Getting started
@@ -28,6 +28,15 @@ A minimal MERN starter with a shadcn-inspired login screen on the client and a M
    ```
 
 The client runs on `http://localhost:5173` and posts login requests to `http://localhost:5000/api/auth/login` by default.
+
+## Dashboard experience
+
+After login, the app redirects into a dashboard screen that includes:
+
+- A shadcn-style sidebar with active and inactive user filters
+- A live camera preview panel on the right
+- A confirmation popup before starting a video call
+- An in-app conference state that highlights the selected participant and active call timer
 
 ## Demo credentials
 
